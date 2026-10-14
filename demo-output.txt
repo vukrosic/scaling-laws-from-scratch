@@ -1,0 +1,270 @@
+
+=== step1_game.py ===
+letters in the text: 100,000,000
+it starts: ' anarchism originated as a term of abuse first used against early '
+
+score of one guess = halvings from 1 down to the chance
+  chance 1.000 -> 0.00 bits
+  chance 0.500 -> 1.00 bits
+  chance 0.250 -> 2.00 bits
+  chance 0.125 -> 3.00 bits
+  chance 0.037 -> 4.75 bits
+
+knows nothing: 4.75 bits per letter
+  ' ': 17.00 % of letters, 2.56 bits when it comes
+  'e': 10.66 % of letters, 3.23 bits when it comes
+  't': 6.95 % of letters, 3.85 bits when it comes
+  'a': 6.61 % of letters, 3.92 bits when it comes
+  'q': 0.09 % of letters, 10.17 bits when it comes
+knows the 27 counts: 4.12 bits per letter
+
+=== step2_one_model.py ===
+numbers in the model: 496
+letters it will read: 4,001,792
+
+before training, every number is a random start
+  score: 4.76 bits per letter
+  it writes: 'the vtdltofdnhakeyxwdxmkhvesuxzler rpppbwrfwljudfmzuyllriryociqh'
+
+after reading 4 million letters once
+  score: 3.61 bits per letter
+  it writes: 'the ted tof nnege a deronsese zoe ar ppitefsliunr ziale irtocich'
+  (11.6 seconds)
+
+=== step3_size.py ===
+size (numbers)   score (bits per letter)   gain
+           496        3.612                   
+         1,760        3.211               0.40
+         6,592        2.869               0.34
+        25,472        2.611               0.26
+       100,096        2.439               0.17
+       396,800        2.295               0.14
+     1,580,032        2.205               0.09
+     3,549,696        2.139               0.07
+
+rule 1: every step takes the same share off the score
+  step 1: score x 0.889
+  step 2: score x 0.893
+  step 3: score x 0.910
+  step 4: score x 0.934
+  the share shrinks at every step: rule 1 fails
+
+rule 2: the scores settle above a floor
+  floor that fits the 5 smallest: 1.89 bits
+        496   gap 1.72   
+      1,760   gap 1.32   x 0.77
+      6,592   gap 0.98   x 0.74
+     25,472   gap 0.72   x 0.74
+    100,096   gap 0.55   x 0.76
+
+  gap = 6.66 x size ^ -0.218
+  4 times the size:  gap x 0.74
+  10 times the size: gap x 0.61
+
+=== step4_forecast.py ===
+built from sizes up to 100,096
+
+size (numbers)   forecast   measured   miss
+       396,800      2.292      2.295   -0.002
+     1,580,032      2.188      2.205   -0.017
+     3,549,696      2.140      2.139   +0.000
+
+biggest miss: 0.017 bits
+the biggest model is 35.5 times larger than any model the line was built from
+
+to halve the gap: 24 times the size
+
+with no floor (a plain straight line on log paper):
+       396,800       2.16       2.29
+     1,580,032       1.94       2.21
+     3,549,696       1.83       2.14
+
+=== step5_text.py ===
+score in bits per letter. Columns: letters read
+
+                  0.25M    1.00M    4.00M   16.00M   64.00M
+           496    4.015    3.725    3.612    3.540    3.512
+         1,760    3.856    3.524    3.211    3.090    3.068
+         6,592    3.868    3.449    2.869    2.730    2.649
+        25,472    3.684    3.311    2.611    2.390    2.288
+       100,096    3.523    2.996    2.439    2.189    2.076
+       396,800    3.476    2.836    2.295    2.043    1.929
+     1,580,032    3.446    2.716    2.205    1.953    1.846
+     3,549,696    3.439    2.711    2.139    1.920    1.812
+
+the floor under all eight sizes, for each amount of text
+    2.00M letters: floor 2.05 bits   (4 times the size: gap x 0.77)
+    4.00M letters: floor 1.90 bits   (4 times the size: gap x 0.74)
+   16.00M letters: floor 1.68 bits   (4 times the size: gap x 0.72)
+   64.00M letters: floor 1.58 bits   (4 times the size: gap x 0.71)
+
+from 100,096 numbers to 3,549,696 numbers (35 times bigger):
+  with 0.25M letters the score improves by 0.08 bits
+  with 64.00M letters the score improves by 0.26 bits
+
+=== step6_formula.py ===
+fitted to 40 runs
+
+score = 1.52 + 8.28 / size ^ 0.24 + 1126 / letters ^ 0.53
+
+floor of the formula: 1.52 bits per letter
+4 times the size:    model part x 0.72
+4 times the letters: text part  x 0.48
+
+usual miss: 0.041 bits   biggest miss: 0.133 bits
+
+   size       letters   model part  text part  formula  measured
+    1,760    4,001,792      1.377      0.357    3.256     3.211
+    1,760    7,999,488      1.377      0.247    3.146     3.146
+    1,760   15,998,976      1.377      0.171    3.070     3.090
+    1,760   31,997,952      1.377      0.119    3.018     3.060
+    1,760   64,000,000      1.377      0.082    2.981     3.068
+  100,096    4,001,792      0.522      0.357    2.401     2.439
+  100,096    7,999,488      0.522      0.247    2.291     2.299
+  100,096   15,998,976      0.522      0.171    2.215     2.189
+  100,096   31,997,952      0.522      0.119    2.163     2.120
+  100,096   64,000,000      0.522      0.082    2.126     2.076
+3,549,696    4,001,792      0.222      0.357    2.100     2.139
+3,549,696    7,999,488      0.222      0.247    1.991     2.022
+3,549,696   15,998,976      0.222      0.171    1.915     1.920
+3,549,696   31,997,952      0.222      0.119    1.862     1.862
+3,549,696   64,000,000      0.222      0.082    1.826     1.812
+
+=== step7_budget.py ===
+work: 0.60 million million
+    numbers       letters   measured   formula
+      1,760    56,897,536      3.074     2.986
+      6,592    15,192,064      2.739     2.701
+     25,472     3,932,160      2.615     2.607   <- lowest
+    100,096       999,424      2.996     2.788
+  the formula's best split: 22,646 numbers, 4.4M letters, score 2.61
+
+work: 2.40 million million
+    numbers       letters   measured   formula
+      6,592    60,764,160      2.657     2.609
+     25,472    15,724,544      2.388     2.420   <- lowest
+    100,096     4,001,792      2.439     2.401
+    396,800     1,007,616      2.835     2.638
+  1,580,032       253,952      3.447     3.329
+  the formula's best split: 58,749 numbers, 6.8M letters, score 2.38
+
+work: 9.61 million million
+    numbers       letters   measured   formula
+     25,472    62,902,272      2.287     2.330
+    100,096    16,007,168      2.190     2.215   <- lowest
+    396,800     4,038,656      2.298     2.252
+  1,580,032     1,015,808      2.711     2.529
+  3,549,696       450,560      3.304     2.879
+  the formula's best split: 152,405 numbers, 10.5M letters, score 2.21
+
+when the work grows, the formula's best split grows as
+  model = work ^ 0.69     text = work ^ 0.31
+   4 times the work: model x 2.6, text x 1.5
+  10 times the work: model x 4.9, text x 2.0
+
+=== step8_schedule.py ===
+score after 4 million letters
+    numbers   on the way   planned   difference
+        496        3.663     3.612       +0.051
+      1,760        3.339     3.211       +0.128
+      6,592        3.048     2.869       +0.179
+     25,472        2.884     2.611       +0.273
+    100,096        2.737     2.439       +0.298
+    396,800        2.591     2.295       +0.296
+  1,580,032        2.515     2.205       +0.310
+  3,549,696        2.494     2.139       +0.355
+
+score after 16 million letters
+    numbers   on the way   planned   difference
+        496        3.587     3.540       +0.047
+      1,760        3.164     3.090       +0.074
+      6,592        2.799     2.730       +0.069
+     25,472        2.492     2.390       +0.102
+    100,096        2.315     2.189       +0.126
+    396,800        2.164     2.043       +0.121
+  1,580,032        2.082     1.953       +0.128
+  3,549,696        2.046     1.920       +0.126
+
+best split of 4 times the work, from the formula
+                  model      text
+  planned       x 2.60    x 1.54   (40 scores)
+  on the way    x 2.50    x 1.60   (40 scores)
+
+=== step9_checks.py ===
+shape, with 16 million letters
+  layers   width     numbers   score
+       1      90      98,550   2.245
+       2      64     100,096   2.189
+       4      46     104,052   2.180
+       8      32     101,696   2.235
+
+  layers   width     numbers   score
+       2     256   1,580,032   1.953
+       8     128   1,586,432   1.957
+
+dice, with 4 million letters
+    numbers   dice 0   dice 1   dice 2   widest gap
+        496   3.612   3.722   3.616        0.110
+      1,760   3.211   3.225   3.208        0.017
+      6,592   2.869   2.861   2.863        0.008
+     25,472   2.611   2.614   2.622        0.011
+    100,096   2.439   2.456   2.477        0.039
+    396,800   2.295   2.303   2.288        0.015
+  1,580,032   2.205   2.198   2.206        0.008
+  3,549,696   2.139   2.156   2.162        0.023
+
+the dice move a score by at most 0.110 bits
+
+=== tests.py ===
+ok    27 letters, a window of 64 letters, 4,096 letters per step
+ok    a guesser that knows nothing scores 4.75 bits
+ok    the eight sizes: 496, 1,760, 6,592, 25,472, 100,096, 396,800, 1,580,032, 3,549,696
+ok    the biggest model is 7,157 times the smallest
+ok    977 steps read 4 million letters, 15,625 steps read 64 million
+ok    the step size rises for a tenth of the run, peaks, and ends at 0.10 of the peak
+ok    a quarter of the way through a long run, the moves are still 0.94 of the peak
+ok    the eight scores after 4 million letters: 3.61, 3.21, 2.87, 2.61, 2.44, 2.29, 2.21, 2.14
+ok    every model beats the one before it
+ok    the first step gains 0.40 bits, the sixth gains 0.09
+ok    the score itself shrinks by a smaller share each step: 0.89, 0.89, 0.91, 0.93
+ok    the floor under the 5 smallest models is 1.89
+ok    the first two gaps are 1.72 and 1.32 bits
+ok    each step leaves this share of the gap: 0.77, 0.74, 0.74, 0.76
+ok    4 times the size leaves 0.74 of the gap, 10 times leaves 0.61
+ok    to halve the gap: 24 times the size
+ok    forecasts 2.29, 2.19, 2.14   measured 2.29, 2.21, 2.14
+ok    the biggest miss is 0.017 bits
+ok    the biggest model is 35 times larger than any model the line was built from
+ok    the biggest model with 4, 16 and 64 million letters: 2.14, 1.92, 1.81
+ok    with 64 million letters it is under the first floor
+ok    the floors under all eight models: 1.90, 1.68, 1.58
+ok    35 times the size gains 0.08 bits with a quarter of a million letters, 0.26 with 64 million
+ok    the formula is fitted to 40 runs with 4 million letters or more
+ok    its floor is 1.52, under every measured score
+ok    4 times the size leaves 0.72 of the model part, 4 times the text leaves 0.48 of the text part
+ok    usual miss 0.041 bits, biggest 0.133
+ok    the middle budget is 2.40 million million calculations
+ok    five models for the same work score 2.66, 2.39, 2.44, 2.83, 3.45
+ok    the best of the five has 25,472 numbers: not the smallest, not the biggest
+ok    the best measured size for a quarter, one and four times the budget: 25,472, 25,472, 100,096
+ok    the formula's best size grows with the budget: 22,646, 58,749, 152,405
+ok    for 10 times the work the formula grows the model 4.9 times and the text 2.0 times
+ok    100,096 numbers after 16 million letters: 2.19 planned, 2.32 on the way to 64 million
+ok    on the way it is 0.13 bits worse
+ok    100,000 numbers in 1, 2, 4 and 8 layers: 2.24, 2.19, 2.18, 2.24
+ok    1.58 million numbers in 2 and 8 layers: 1.95 and 1.96
+ok    other dice move the smallest model by 0.11 bits, every other model by at most 0.04
+ok    the exercise, 16 million letters: forecasts 1.99, 1.85, 1.78, biggest miss 0.14 bits
+
+39 of 39 checks ok
+
+=== exercise.py ===
+every model reads 16 million letters
+floor found from the 5 smallest models: 1.35
+
+size (numbers)   forecast   measured   miss
+       396,800      1.994      2.043   -0.049
+     1,580,032      1.850      1.953   -0.103
+     3,549,696      1.781      1.920   -0.139
+
+biggest miss: 0.139 bits
